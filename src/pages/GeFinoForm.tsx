@@ -230,15 +230,15 @@ export default function GeFinoForm() {
     { key: "absorcion_pct", sym: "-", desc: "Absorcion (%)", unit: "%", val: absorcion },
   ]
 
-  const txt = "w-full h-9 px-2 border border-slate-400 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
+  const txt = "h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/35"
   const num = txt
 
   return (
-    <div className="min-h-screen bg-slate-200 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="max-w-[1180px] mx-auto space-y-4">
-        <div className="flex items-center justify-between bg-white border border-slate-300 px-4 py-3">
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 border border-slate-900 bg-slate-100 flex items-center justify-center"><Beaker className="h-5 w-5 text-slate-900" /></div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-slate-50"><Beaker className="h-5 w-5 text-slate-900" /></div>
             <div>
               <h1 className="text-base md:text-lg font-semibold text-slate-900">GE Fino - ASTM C128-25</h1>
               <p className="text-xs text-slate-600">Formato fiel a plantilla Excel</p>
@@ -246,9 +246,9 @@ export default function GeFinoForm() {
           </div>
         </div>
 
-        {loadingEdit ? <div className="h-10 border border-slate-300 bg-white px-3 text-sm text-slate-600 flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Cargando ensayo...</div> : null}
+        {loadingEdit ? <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm"><Loader2 className="h-4 w-4 animate-spin" />Cargando ensayo...</div> : null}
 
-        <div className="border-2 border-slate-700 bg-[#e5e7eb]">
+        <div className="overflow-hidden rounded-2xl border border-slate-500 bg-[#e5e7eb] shadow-sm">
           <div className="grid grid-cols-4 border-b border-slate-700 bg-white text-xs font-semibold text-center">
             <div className="border-r border-slate-700 py-1">MUESTRA</div><div className="border-r border-slate-700 py-1">N° OT</div><div className="border-r border-slate-700 py-1">FECHA DE ENSAYO</div><div className="py-1">REALIZADO</div>
           </div>
@@ -300,7 +300,7 @@ export default function GeFinoForm() {
           </div>
 
           <div className="p-3 border-b border-slate-700">
-            <div className="grid grid-cols-2 gap-2 max-w-[760px] mx-auto text-sm">
+            <div className="mx-auto grid max-w-[760px] grid-cols-2 gap-2 overflow-hidden rounded-lg text-sm">
               <div className="border border-slate-700 p-2">Balanza 0.1 g</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_balanza_01g_codigo || ""} onChange={(e) => setField("equipo_balanza_01g_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
               <div className="border border-slate-700 p-2">Horno 110°C</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_horno_110_codigo || ""} onChange={(e) => setField("equipo_horno_110_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
               <div className="border border-slate-700 p-2">Termometro</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_termometro_codigo || ""} onChange={(e) => setField("equipo_termometro_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
@@ -310,16 +310,16 @@ export default function GeFinoForm() {
             </div>
           </div>
 
-          <div className="p-3 border-b border-slate-700"><textarea value={form.observaciones || ""} onChange={(e) => setField("observaciones", e.target.value)} rows={3} autoComplete="off" data-lpignore="true" className="w-full border border-slate-400 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-600" /></div>
+          <div className="p-3 border-b border-slate-700"><textarea value={form.observaciones || ""} onChange={(e) => setField("observaciones", e.target.value)} rows={3} autoComplete="off" data-lpignore="true" className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/35" /></div>
 
           <div className="grid grid-cols-2 gap-3 p-3">
-            <div className="border border-slate-700 p-3 bg-[#f3f4f6] space-y-2">
+            <div className="rounded-lg border border-slate-500 bg-[#f3f4f6] p-3 space-y-2">
               <p className="text-sm font-semibold">Revisado:</p>
               <select className={txt} value={form.revisado_por || "-"} onChange={(e) => setField("revisado_por", e.target.value)}>{REVISORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
               <p className="text-sm font-semibold">Fecha:</p>
               <input className={txt} value={form.revisado_fecha || ""} onChange={(e) => setField("revisado_fecha", e.target.value)} onBlur={() => setField("revisado_fecha", normalizeDate(form.revisado_fecha || ""))} autoComplete="off" data-lpignore="true" />
             </div>
-            <div className="border border-slate-700 p-3 bg-[#f3f4f6] space-y-2">
+            <div className="rounded-lg border border-slate-500 bg-[#f3f4f6] p-3 space-y-2">
               <p className="text-sm font-semibold">Aprobado:</p>
               <select className={txt} value={form.aprobado_por || "-"} onChange={(e) => setField("aprobado_por", e.target.value)}>{APROBADORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
               <p className="text-sm font-semibold">Fecha:</p>
@@ -329,9 +329,9 @@ export default function GeFinoForm() {
         </div>
 
         <div className="flex flex-wrap gap-3 justify-end">
-          <button type="button" className="h-10 px-4 border border-slate-500 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60" onClick={clearAll} disabled={loading}><span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Limpiar</span></button>
-          <button type="button" className="h-10 px-4 border border-slate-900 bg-slate-900 text-sm font-semibold text-white hover:bg-black disabled:opacity-60" onClick={() => void save(false)} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</button>
-          <button type="button" className="h-10 px-4 border border-emerald-700 bg-emerald-700 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60" onClick={() => void save(true)} disabled={loading}><span className="inline-flex items-center gap-2">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Guardar y Descargar</span></button>
+          <button type="button" className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-60" onClick={clearAll} disabled={loading}><span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Limpiar</span></button>
+          <button type="button" className="h-10 rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-60" onClick={() => void save(false)} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</button>
+          <button type="button" className="h-10 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60" onClick={() => void save(true)} disabled={loading}><span className="inline-flex items-center gap-2">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Guardar y Descargar</span></button>
         </div>
       </div>
     </div>
