@@ -126,10 +126,24 @@ const normalizeOt = (raw: string) => {
 const normalizeDate = (raw: string) => {
   const v = raw.trim()
   if (!v) return ""
-  if (v.includes("/")) return v
+  const pad2 = (part: string) => part.padStart(2, "0").slice(-2)
+  const build = (d: string, m: string, y: string = y2()) => `${pad2(d)}/${pad2(m)}/${pad2(y)}`
+  if (v.includes("/")) {
+    const [d = "", m = "", yRaw = ""] = v.split("/").map((part) => part.trim())
+    if (!d || !m) return v
+    let yy = yRaw.replace(/\D/g, "")
+    if (yy.length === 4) yy = yy.slice(-2)
+    if (yy.length === 1) yy = `0${yy}`
+    if (!yy) yy = y2()
+    return build(d, m, yy)
+  }
   const d = v.replace(/\D/g, "")
-  if (d.length === 6) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4, 6)}`
-  if (d.length === 4) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${y2()}`
+  if (d.length === 2) return build(d[0], d[1])
+  if (d.length === 3) return build(d[0], d.slice(1, 3))
+  if (d.length === 4) return build(d.slice(0, 2), d.slice(2, 4))
+  if (d.length === 5) return build(d[0], d.slice(1, 3), d.slice(3, 5))
+  if (d.length === 6) return build(d.slice(0, 2), d.slice(2, 4), d.slice(4, 6))
+  if (d.length >= 8) return build(d.slice(0, 2), d.slice(2, 4), d.slice(6, 8))
   return v
 }
 
