@@ -10,10 +10,46 @@ const DEBOUNCE_MS = 700
 const REVISORES = ["-", "FABIAN LA ROSA"] as const
 const APROBADORES = ["-", "IRMA COAQUIRA"] as const
 
+type EquipoField =
+  | "equipo_balanza_01g_codigo"
+  | "equipo_horno_110_codigo"
+  | "equipo_termometro_codigo"
+  | "equipo_picnometro_codigo"
+  | "equipo_molde_pison_codigo"
+  | "equipo_gravedad_especifica_codigo"
+
+const EQUIPO_OPTIONS: Record<EquipoField, readonly string[]> = {
+  equipo_balanza_01g_codigo: ["-", "EQP-0090"],
+  equipo_horno_110_codigo: ["-", "EQP-0049"],
+  equipo_termometro_codigo: ["-", "INS-0153"],
+  equipo_picnometro_codigo: ["-"],
+  equipo_molde_pison_codigo: ["-", "INS-0111"],
+  equipo_gravedad_especifica_codigo: ["-"],
+}
+
+const getEquipmentOptions = (value: string | null | undefined, base: readonly string[]) => {
+  const current = (value ?? "").trim()
+  if (!current || base.includes(current)) return base
+  return [...base, current]
+}
+
+const formatTodayShortDate = () => {
+  const d = new Date()
+  const dd = String(d.getDate()).padStart(2, "0")
+  const mm = String(d.getMonth() + 1).padStart(2, "0")
+  const yy = String(d.getFullYear()).slice(-2)
+  return `${dd}/${mm}/${yy}`
+}
+
+const ensureFechaEnsayo = (value: string | null | undefined) => {
+  const text = (value ?? "").trim()
+  return text || formatTodayShortDate()
+}
+
 const initialState = (): GeFinoPayload => ({
   muestra: "",
   numero_ot: "",
-  fecha_ensayo: "",
+  fecha_ensayo: formatTodayShortDate(),
   realizado_por: "",
   masa_humeda_g: null,
   masa_seca_g: null,
@@ -43,14 +79,28 @@ const initialState = (): GeFinoPayload => ({
   equipo_gravedad_especifica_codigo: "-",
   observaciones: "",
   revisado_por: "-",
-  revisado_fecha: "",
+  revisado_fecha: formatTodayShortDate(),
   aprobado_por: "-",
-  aprobado_fecha: "",
+  aprobado_fecha: formatTodayShortDate(),
 })
+
+const normalizeNumericText = (value: string) => {
+  const raw = value.trim().replace(/\s+/g, "")
+  if (!raw) return ""
+  const hasComma = raw.includes(",")
+  const hasDot = raw.includes(".")
+  if (hasComma && hasDot) {
+    return raw.lastIndexOf(",") > raw.lastIndexOf(".")
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw.replace(/,/g, "")
+  }
+  if (hasComma) return raw.replace(",", ".")
+  return raw
+}
 
 const parseNum = (v: unknown): number | null => {
   if (v === null || v === undefined || v === "") return null
-  const n = Number(v)
+  const n = Number(normalizeNumericText(String(v)))
   return Number.isFinite(n) ? n : null
 }
 
@@ -84,6 +134,39 @@ const normalizeDate = (raw: string) => {
 }
 
 const round4 = (n: number | null) => (n == null ? null : Number(n.toFixed(4)))
+const round2 = (n: number | null) => (n == null ? null : Number(n.toFixed(2)))
+const fixed4 = (n: number | null | undefined) => (n == null ? "" : n.toFixed(4))
+const fixed2 = (n: number | null | undefined) => (n == null ? "" : n.toFixed(2))
+
+const extractApiErrorMessage = async (error: unknown): Promise<string> => {
+  let msg = error instanceof Error ? error.message : "Error desconocido"
+  if (!axios.isAxiosError(error)) return msg
+
+  const detail = error.response?.data?.detail
+  if (typeof detail === "string" && detail.trim()) return detail
+
+  const blob = error.response?.data
+  if (blob instanceof Blob) {
+    try {
+      const raw = await blob.text()
+      if (!raw) return msg
+
+      try {
+        const parsed = JSON.parse(raw) as { detail?: unknown; message?: unknown }
+        if (typeof parsed.detail === "string" && parsed.detail.trim()) return parsed.detail
+        if (typeof parsed.message === "string" && parsed.message.trim()) return parsed.message
+      } catch {
+        // non-json text body
+      }
+
+      return raw.slice(0, 300)
+    } catch {
+      return msg
+    }
+  }
+
+  return msg
+}
 
 type NKey =
   | "valor_s_g"
@@ -130,13 +213,15 @@ export default function GeFinoForm() {
     const den = form.valor_b_g + computedA - form.valor_c_g
     return den === 0 ? null : round4(computedA / den)
   }, [computedA, form.densidad_relativa_aparente, form.valor_b_g, form.valor_c_g])
-  const absorcion = useMemo(() => form.absorcion_pct ?? (form.valor_s_g != null && computedA != null && computedA !== 0 ? round4(((form.valor_s_g - computedA) / computedA) * 100) : null), [computedA, form.absorcion_pct, form.valor_s_g])
+  const absorcion = useMemo(() => form.absorcion_pct ?? (form.valor_s_g != null && computedA != null && computedA !== 0 ? round2(((form.valor_s_g - computedA) / computedA) * 100) : null), [computedA, form.absorcion_pct, form.valor_s_g])
 
   useEffect(() => {
     const raw = localStorage.getItem(`${DRAFT_KEY}:${editingEnsayoId ?? "new"}`)
     if (!raw) return
     try {
-      setForm({ ...initialState(), ...JSON.parse(raw) })
+      const hydrated = { ...initialState(), ...JSON.parse(raw) } as GeFinoPayload
+      hydrated.fecha_ensayo = ensureFechaEnsayo(hydrated.fecha_ensayo)
+      setForm(hydrated)
     } catch {
       // ignore
     }
@@ -156,7 +241,11 @@ export default function GeFinoForm() {
       setLoadingEdit(true)
       try {
         const detail = await getGeFinoEnsayoDetail(editingEnsayoId)
-        if (!cancelled && detail.payload) setForm({ ...initialState(), ...detail.payload })
+        if (!cancelled && detail.payload) {
+          const hydrated = { ...initialState(), ...detail.payload } as GeFinoPayload
+          hydrated.fecha_ensayo = ensureFechaEnsayo(hydrated.fecha_ensayo)
+          setForm(hydrated)
+        }
       } catch {
         toast.error("No se pudo cargar ensayo GE Fino para edicion.")
       } finally {
@@ -170,8 +259,8 @@ export default function GeFinoForm() {
   }, [editingEnsayoId])
 
   const save = useCallback(async (download: boolean) => {
-    if (!form.muestra || !form.numero_ot || !form.realizado_por) {
-      toast.error("Complete Muestra, N OT y Realizado por.")
+    if (!form.muestra || !form.numero_ot || !form.realizado_por || !form.fecha_ensayo) {
+      toast.error("Complete Muestra, N OT, Fecha de ensayo y Realizado por.")
       return
     }
     setLoading(true)
@@ -201,8 +290,7 @@ export default function GeFinoForm() {
       if (window.parent !== window) window.parent.postMessage({ type: "CLOSE_MODAL" }, "*")
       toast.success(download ? "GE Fino guardado y descargado." : "GE Fino guardado.")
     } catch (error: unknown) {
-      let msg = error instanceof Error ? error.message : "Error desconocido"
-      if (axios.isAxiosError(error) && typeof error.response?.data?.detail === "string") msg = error.response.data.detail
+      const msg = await extractApiErrorMessage(error)
       toast.error(`Error guardando GE Fino: ${msg}`)
     } finally {
       setLoading(false)
@@ -248,23 +336,23 @@ export default function GeFinoForm() {
 
         {loadingEdit ? <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm"><Loader2 className="h-4 w-4 animate-spin" />Cargando ensayo...</div> : null}
 
-        <div className="overflow-hidden rounded-2xl border border-slate-500 bg-[#e5e7eb] shadow-sm">
-          <div className="grid grid-cols-4 border-b border-slate-700 bg-white text-xs font-semibold text-center">
-            <div className="border-r border-slate-700 py-1">MUESTRA</div><div className="border-r border-slate-700 py-1">N° OT</div><div className="border-r border-slate-700 py-1">FECHA DE ENSAYO</div><div className="py-1">REALIZADO</div>
+        <div className="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50 shadow-sm">
+          <div className="grid grid-cols-4 border-b border-slate-300 bg-white text-xs font-semibold text-center">
+            <div className="border-r border-slate-300 py-1">MUESTRA</div><div className="border-r border-slate-300 py-1">N° OT</div><div className="border-r border-slate-300 py-1">FECHA DE ENSAYO</div><div className="py-1">REALIZADO</div>
           </div>
-          <div className="grid grid-cols-4 border-b border-slate-700">
-            <div className="border-r border-slate-700 p-1"><input className={txt} value={form.muestra} onChange={(e) => setField("muestra", e.target.value)} onBlur={() => setField("muestra", normalizeMuestra(form.muestra || ""))} autoComplete="off" data-lpignore="true" /></div>
-            <div className="border-r border-slate-700 p-1"><input className={txt} value={form.numero_ot} onChange={(e) => setField("numero_ot", e.target.value)} onBlur={() => setField("numero_ot", normalizeOt(form.numero_ot || ""))} autoComplete="off" data-lpignore="true" /></div>
-            <div className="border-r border-slate-700 p-1"><input className={txt} value={form.fecha_ensayo} onChange={(e) => setField("fecha_ensayo", e.target.value)} onBlur={() => setField("fecha_ensayo", normalizeDate(form.fecha_ensayo || ""))} autoComplete="off" data-lpignore="true" /></div>
+          <div className="grid grid-cols-4 border-b border-slate-300">
+            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.muestra} onChange={(e) => setField("muestra", e.target.value)} onBlur={() => setField("muestra", normalizeMuestra(form.muestra || ""))} autoComplete="off" data-lpignore="true" /></div>
+            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.numero_ot} onChange={(e) => setField("numero_ot", e.target.value)} onBlur={() => setField("numero_ot", normalizeOt(form.numero_ot || ""))} autoComplete="off" data-lpignore="true" /></div>
+            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.fecha_ensayo} onChange={(e) => setField("fecha_ensayo", e.target.value)} onBlur={() => setField("fecha_ensayo", ensureFechaEnsayo(normalizeDate(form.fecha_ensayo || "")))} autoComplete="off" data-lpignore="true" /></div>
             <div className="p-1"><input className={txt} value={form.realizado_por || ""} onChange={(e) => setField("realizado_por", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
           </div>
 
-          <div className="text-center py-2 border-b border-slate-700 bg-[#f3f4f6]">
+          <div className="text-center py-2 border-b border-slate-300 bg-slate-100">
             <p className="text-[13px] font-semibold text-slate-900">Standard Test Method for Relative Density (Specific Gravity) and Absorption of Fine Aggregate</p>
             <p className="text-sm font-semibold text-slate-900 mt-1">ASTM C128-25</p>
           </div>
 
-          <div className="border-b border-slate-700 p-3 space-y-2">
+          <div className="border-b border-slate-300 p-3 space-y-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="grid grid-cols-[1fr_220px] gap-2 items-center"><label className="text-sm">Masa humeda</label><input type="number" step="any" className={num} value={form.masa_humeda_g ?? ""} onChange={(e) => setField("masa_humeda_g", parseNum(e.target.value))} /></div>
@@ -280,46 +368,73 @@ export default function GeFinoForm() {
             </div>
           </div>
 
-          <table className="w-full border-collapse text-sm border-b border-slate-700">
-            <thead><tr className="bg-[#f3f4f6]"><th className="w-12 border border-slate-700"></th><th className="border border-slate-700">Descripcion</th><th className="w-14 border border-slate-700">Und.</th><th className="w-56 border border-slate-700">Ensayo</th></tr></thead>
+          <table className="w-full border-collapse text-sm border-b border-slate-300">
+            <thead><tr className="bg-slate-100"><th className="w-12 border border-slate-300"></th><th className="border border-slate-300">Descripcion</th><th className="w-14 border border-slate-300">Und.</th><th className="w-56 border border-slate-300">Ensayo</th></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.key}>
-                  <td className="border border-slate-700 text-center">{r.sym}</td>
-                  <td className="border border-slate-700 px-2 py-1">{r.desc}</td>
-                  <td className="border border-slate-700 text-center">{r.unit}</td>
-                  <td className="border border-slate-700 p-1"><input type="number" step="any" className={`${num} ${r.key === "valor_a_g" || r.key.startsWith("densidad_") || r.key === "absorcion_pct" ? "bg-slate-50" : ""}`} value={(form[r.key] as number | null | undefined) ?? r.val ?? ""} onChange={(e) => setField(r.key, parseNum(e.target.value))} /></td>
+                  <td className="border border-slate-300 text-center">{r.sym}</td>
+                  <td className="border border-slate-300 px-2 py-1">{r.desc}</td>
+                  <td className="border border-slate-300 text-center">{r.unit}</td>
+                  <td className="border border-slate-300 p-1">
+                    {r.key === "densidad_relativa_od" || r.key === "densidad_relativa_ssd" || r.key === "densidad_relativa_aparente" ? (
+                      <input type="text" className={`${num} bg-slate-50`} value={fixed4((form[r.key] as number | null | undefined) ?? r.val ?? null)} readOnly />
+                    ) : r.key === "absorcion_pct" ? (
+                      <input type="text" className={`${num} bg-slate-50`} value={fixed2((form[r.key] as number | null | undefined) ?? r.val ?? null)} readOnly />
+                    ) : (
+                      <input type="number" step="any" className={`${num} ${r.key === "valor_a_g" || r.key.startsWith("densidad_") || r.key === "absorcion_pct" ? "bg-slate-50" : ""}`} value={(form[r.key] as number | null | undefined) ?? r.val ?? ""} onChange={(e) => setField(r.key, parseNum(e.target.value))} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="p-3 border-b border-slate-700 grid grid-cols-[1fr_140px] gap-3 items-center">
+          <div className="p-3 border-b border-slate-300 grid grid-cols-[1fr_140px] gap-3 items-center">
             <p className="text-sm">La muestra se seco en horno a masa constante a 110 ± 5°C, antes de saturar. (Si o No)</p>
             <select className={txt} value={form.seco_horno_110_si_no || "-"} onChange={(e) => setField("seco_horno_110_si_no", e.target.value as GeFinoPayload["seco_horno_110_si_no"])}><option value="-">-</option><option value="SI">SI</option><option value="NO">NO</option></select>
           </div>
 
-          <div className="p-3 border-b border-slate-700">
+          <div className="p-3 border-b border-slate-300">
             <div className="mx-auto grid max-w-[760px] grid-cols-2 gap-2 overflow-hidden rounded-lg text-sm">
-              <div className="border border-slate-700 p-2">Balanza 0.1 g</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_balanza_01g_codigo || ""} onChange={(e) => setField("equipo_balanza_01g_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
-              <div className="border border-slate-700 p-2">Horno 110°C</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_horno_110_codigo || ""} onChange={(e) => setField("equipo_horno_110_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
-              <div className="border border-slate-700 p-2">Termometro</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_termometro_codigo || ""} onChange={(e) => setField("equipo_termometro_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
-              <div className="border border-slate-700 p-2">Picnometro</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_picnometro_codigo || ""} onChange={(e) => setField("equipo_picnometro_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
-              <div className="border border-slate-700 p-2">Molde (tronco conico) y pison</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_molde_pison_codigo || ""} onChange={(e) => setField("equipo_molde_pison_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
-              <div className="border border-slate-700 p-2">Equipo Gravedad Especifica</div><div className="border border-slate-700 p-1"><input className={txt} value={form.equipo_gravedad_especifica_codigo || ""} onChange={(e) => setField("equipo_gravedad_especifica_codigo", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
+              {[
+                { label: "Balanza 0.1 g", key: "equipo_balanza_01g_codigo" as const },
+                { label: "Horno 110°C", key: "equipo_horno_110_codigo" as const },
+                { label: "Termometro", key: "equipo_termometro_codigo" as const },
+                { label: "Picnometro", key: "equipo_picnometro_codigo" as const },
+                { label: "Molde (tronco conico) y pison", key: "equipo_molde_pison_codigo" as const },
+                { label: "Equipo Gravedad Especifica", key: "equipo_gravedad_especifica_codigo" as const },
+              ].map(({ label, key }) => {
+                const currentValue = form[key] || "-"
+                const options = getEquipmentOptions(currentValue, EQUIPO_OPTIONS[key])
+                return (
+                  <div key={key} className="contents">
+                    <div className="border border-slate-300 p-2">{label}</div>
+                    <div className="border border-slate-300 p-1">
+                      <select className={txt} value={currentValue} onChange={(e) => setField(key, e.target.value)}>
+                        {options.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          <div className="p-3 border-b border-slate-700"><textarea value={form.observaciones || ""} onChange={(e) => setField("observaciones", e.target.value)} rows={3} autoComplete="off" data-lpignore="true" className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/35" /></div>
+          <div className="p-3 border-b border-slate-300"><textarea value={form.observaciones || ""} onChange={(e) => setField("observaciones", e.target.value)} rows={3} autoComplete="off" data-lpignore="true" className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/35" /></div>
 
           <div className="grid grid-cols-2 gap-3 p-3">
-            <div className="rounded-lg border border-slate-500 bg-[#f3f4f6] p-3 space-y-2">
+            <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
               <p className="text-sm font-semibold">Revisado:</p>
               <select className={txt} value={form.revisado_por || "-"} onChange={(e) => setField("revisado_por", e.target.value)}>{REVISORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
               <p className="text-sm font-semibold">Fecha:</p>
               <input className={txt} value={form.revisado_fecha || ""} onChange={(e) => setField("revisado_fecha", e.target.value)} onBlur={() => setField("revisado_fecha", normalizeDate(form.revisado_fecha || ""))} autoComplete="off" data-lpignore="true" />
             </div>
-            <div className="rounded-lg border border-slate-500 bg-[#f3f4f6] p-3 space-y-2">
+            <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
               <p className="text-sm font-semibold">Aprobado:</p>
               <select className={txt} value={form.aprobado_por || "-"} onChange={(e) => setField("aprobado_por", e.target.value)}>{APROBADORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
               <p className="text-sm font-semibold">Fecha:</p>
