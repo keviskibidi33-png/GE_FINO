@@ -41,15 +41,10 @@ const formatTodayShortDate = () => {
   return `${dd}/${mm}/${yy}`
 }
 
-const ensureFechaEnsayo = (value: string | null | undefined) => {
-  const text = (value ?? "").trim()
-  return text || formatTodayShortDate()
-}
-
 const initialState = (): GeFinoPayload => ({
   muestra: "",
   numero_ot: "",
-  fecha_ensayo: formatTodayShortDate(),
+  fecha_ensayo: "",
   realizado_por: "",
   masa_humeda_g: null,
   masa_seca_g: null,
@@ -234,7 +229,7 @@ export default function GeFinoForm() {
     if (!raw) return
     try {
       const hydrated = { ...initialState(), ...JSON.parse(raw) } as GeFinoPayload
-      hydrated.fecha_ensayo = ensureFechaEnsayo(hydrated.fecha_ensayo)
+      hydrated.fecha_ensayo = normalizeDate(hydrated.fecha_ensayo || "")
       setForm(hydrated)
     } catch {
       // ignore
@@ -257,7 +252,7 @@ export default function GeFinoForm() {
         const detail = await getGeFinoEnsayoDetail(editingEnsayoId)
         if (!cancelled && detail.payload) {
           const hydrated = { ...initialState(), ...detail.payload } as GeFinoPayload
-          hydrated.fecha_ensayo = ensureFechaEnsayo(hydrated.fecha_ensayo)
+          hydrated.fecha_ensayo = normalizeDate(hydrated.fecha_ensayo || "")
           setForm(hydrated)
         }
       } catch {
@@ -357,7 +352,7 @@ export default function GeFinoForm() {
           <div className="grid grid-cols-4 border-b border-slate-300">
             <div className="border-r border-slate-300 p-1"><input className={txt} value={form.muestra} onChange={(e) => setField("muestra", e.target.value)} onBlur={() => setField("muestra", normalizeMuestra(form.muestra || ""))} autoComplete="off" data-lpignore="true" /></div>
             <div className="border-r border-slate-300 p-1"><input className={txt} value={form.numero_ot} onChange={(e) => setField("numero_ot", e.target.value)} onBlur={() => setField("numero_ot", normalizeOt(form.numero_ot || ""))} autoComplete="off" data-lpignore="true" /></div>
-            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.fecha_ensayo} onChange={(e) => setField("fecha_ensayo", e.target.value)} onBlur={() => setField("fecha_ensayo", ensureFechaEnsayo(normalizeDate(form.fecha_ensayo || "")))} autoComplete="off" data-lpignore="true" /></div>
+            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.fecha_ensayo} onChange={(e) => setField("fecha_ensayo", e.target.value)} onBlur={() => setField("fecha_ensayo", normalizeDate(form.fecha_ensayo || ""))} autoComplete="off" data-lpignore="true" /></div>
             <div className="p-1"><input className={txt} value={form.realizado_por || ""} onChange={(e) => setField("realizado_por", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
           </div>
 
@@ -396,7 +391,7 @@ export default function GeFinoForm() {
                     ) : r.key === "absorcion_pct" ? (
                       <input type="text" className={`${num} bg-slate-50`} value={fixed2((form[r.key] as number | null | undefined) ?? r.val ?? null)} readOnly />
                     ) : (
-                      <input type="number" step="any" className={`${num} ${r.key === "valor_a_g" || r.key.startsWith("densidad_") || r.key === "absorcion_pct" ? "bg-slate-50" : ""}`} value={(form[r.key] as number | null | undefined) ?? r.val ?? ""} onChange={(e) => setField(r.key, parseNum(e.target.value))} />
+                      <input type="number" step="any" className={`${num} ${r.key === "valor_a_g" ? "bg-slate-50" : ""}`} value={(form[r.key] as number | null | undefined) ?? r.val ?? ""} onChange={(e) => setField(r.key, parseNum(e.target.value))} />
                     )}
                   </td>
                 </tr>
@@ -419,13 +414,16 @@ export default function GeFinoForm() {
                 { label: "Molde (tronco conico) y pison", key: "equipo_molde_pison_codigo" as const },
                 { label: "Equipo Gravedad Especifica", key: "equipo_gravedad_especifica_codigo" as const },
               ].map(({ label, key }) => {
-                const currentValue = form[key] || "-"
-                const options = getEquipmentOptions(currentValue, EQUIPO_OPTIONS[key])
+                const options = getEquipmentOptions(form[key], EQUIPO_OPTIONS[key])
                 return (
                   <div key={key} className="contents">
                     <div className="border border-slate-300 p-2">{label}</div>
                     <div className="border border-slate-300 p-1">
-                      <select className={txt} value={currentValue} onChange={(e) => setField(key, e.target.value)}>
+                      <select
+                        className={txt}
+                        value={form[key] || "-"}
+                        onChange={(e) => setField(key, e.target.value)}
+                      >
                         {options.map((opt) => (
                           <option key={opt} value={opt}>
                             {opt}
