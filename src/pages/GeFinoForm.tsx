@@ -4,6 +4,7 @@ import toast from "react-hot-toast"
 import { Beaker, Download, Loader2, Trash2 } from "lucide-react"
 import { getGeFinoEnsayoDetail, saveAndDownloadGeFinoExcel, saveGeFinoEnsayo } from "@/services/api"
 import type { GeFinoPayload } from "@/types"
+import FormatConfirmModal from '../components/FormatConfirmModal'
 
 const DRAFT_KEY = "ge_fino_form_draft_v1"
 const DEBOUNCE_MS = 700
@@ -31,13 +32,7 @@ const getEquipmentOptions = (value: string | null | undefined, base: readonly st
   return [...base, current]
 }
 
-const formatTodayShortDate = () => {
-  const d = new Date()
-  const dd = String(d.getDate()).padStart(2, "0")
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const yy = String(d.getFullYear()).slice(-2)
-  return `${dd}/${mm}/${yy}`
-}
+
 
 const initialState = (): GeFinoPayload => ({
   muestra: "",
@@ -71,9 +66,9 @@ const initialState = (): GeFinoPayload => ({
   equipo_molde_pison_codigo: "-",
   observaciones: "",
   revisado_por: "-",
-  revisado_fecha: formatTodayShortDate(),
-  aprobado_por: "-",
-  aprobado_fecha: formatTodayShortDate(),
+  revisado_fecha: '',
+  aprobado_por: '-',
+  aprobado_fecha: '',
 })
 
 const normalizeNumericText = (value: string) => {
@@ -263,6 +258,8 @@ export default function GeFinoForm() {
       cancelled = true
     }
   }, [editingEnsayoId])
+    const [pendingFormatAction, setPendingFormatAction] = useState<boolean | null>(null)
+
 
   const save = useCallback(async (download: boolean) => {
     if (!form.muestra || !form.numero_ot || !form.realizado_por || !form.fecha_ensayo) {
@@ -467,10 +464,23 @@ export default function GeFinoForm() {
 
         <div className="flex flex-wrap gap-3 justify-end">
           <button type="button" className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-60" onClick={clearAll} disabled={loading}><span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Limpiar</span></button>
-          <button type="button" className="h-10 rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-60" onClick={() => void save(false)} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</button>
-          <button type="button" className="h-10 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60" onClick={() => void save(true)} disabled={loading}><span className="inline-flex items-center gap-2">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Guardar y Descargar</span></button>
+          <button type="button" className="h-10 rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-60" onClick={() => setPendingFormatAction(false)} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</button>
+          <button type="button" className="h-10 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60" onClick={() => setPendingFormatAction(true)} disabled={loading}><span className="inline-flex items-center gap-2">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Guardar y Descargar</span></button>
         </div>
       </div>
+        <FormatConfirmModal
+            open={pendingFormatAction !== null}
+            formatLabel={`Formato N-xxxx-AG-${new Date().getFullYear().toString().slice(-2)} GE FINO`}
+            actionLabel={pendingFormatAction ? 'Guardar y Descargar' : 'Guardar'}
+            onClose={() => setPendingFormatAction(null)}
+            onConfirm={() => {
+                if (pendingFormatAction === null) return
+                const shouldDownload = pendingFormatAction
+                setPendingFormatAction(null)
+                void save(shouldDownload)
+            }}
+        />
+
     </div>
   )
 }
