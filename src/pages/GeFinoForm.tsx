@@ -16,7 +16,6 @@ type EquipoField =
   | "equipo_termometro_codigo"
   | "equipo_picnometro_codigo"
   | "equipo_molde_pison_codigo"
-  | "equipo_gravedad_especifica_codigo"
 
 const EQUIPO_OPTIONS: Record<EquipoField, readonly string[]> = {
   equipo_balanza_01g_codigo: ["-", "EQP-0090"],
@@ -24,7 +23,6 @@ const EQUIPO_OPTIONS: Record<EquipoField, readonly string[]> = {
   equipo_termometro_codigo: ["-", "INS-0153"],
   equipo_picnometro_codigo: ["-"],
   equipo_molde_pison_codigo: ["-", "INS-0111"],
-  equipo_gravedad_especifica_codigo: ["-"],
 }
 
 const getEquipmentOptions = (value: string | null | undefined, base: readonly string[]) => {
@@ -71,7 +69,6 @@ const initialState = (): GeFinoPayload => ({
   equipo_termometro_codigo: "-",
   equipo_picnometro_codigo: "",
   equipo_molde_pison_codigo: "-",
-  equipo_gravedad_especifica_codigo: "-",
   observaciones: "",
   revisado_por: "-",
   revisado_fecha: formatTodayShortDate(),
@@ -414,7 +411,6 @@ export default function GeFinoForm() {
                 { label: "Termometro", key: "equipo_termometro_codigo" as const },
                 { label: "Picnometro", key: "equipo_picnometro_codigo" as const },
                 { label: "Molde (tronco conico) y pison", key: "equipo_molde_pison_codigo" as const },
-                { label: "Equipo Gravedad Especifica", key: "equipo_gravedad_especifica_codigo" as const },
               ].map(({ label, key }) => {
                 const options = getEquipmentOptions(form[key], EQUIPO_OPTIONS[key])
                 return (

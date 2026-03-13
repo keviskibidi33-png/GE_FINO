@@ -31,7 +31,6 @@ export interface GeFinoPayload {
     equipo_termometro_codigo?: string | null
     equipo_picnometro_codigo?: string | null
     equipo_molde_pison_codigo?: string | null
-    equipo_gravedad_especifica_codigo?: string | null
 
     observaciones?: string | null
     revisado_por?: string | null
