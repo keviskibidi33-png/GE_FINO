@@ -419,17 +419,14 @@ export default function GeFinoForm() {
                   <div key={key} className="contents">
                     <div className="border border-slate-300 p-2">{label}</div>
                     <div className="border border-slate-300 p-1">
-                      <select
+                      <input
+                        type="text"
                         className={txt}
-                        value={form[key] || "-"}
+                        value={form[key] || ""}
                         onChange={(e) => setField(key, e.target.value)}
-                      >
-                        {options.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
+                        autoComplete="off"
+                        data-lpignore="true"
+                      />
                     </div>
                   </div>
                 )
