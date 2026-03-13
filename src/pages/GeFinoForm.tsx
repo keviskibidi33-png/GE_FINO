@@ -66,12 +66,12 @@ const initialState = (): GeFinoPayload => ({
   densidad_relativa_aparente: null,
   absorcion_pct: null,
   seco_horno_110_si_no: "-",
-  equipo_balanza_01g_codigo: "",
-  equipo_horno_110_codigo: "",
-  equipo_termometro_codigo: "",
+  equipo_balanza_01g_codigo: "-",
+  equipo_horno_110_codigo: "-",
+  equipo_termometro_codigo: "-",
   equipo_picnometro_codigo: "",
-  equipo_molde_pison_codigo: "",
-  equipo_gravedad_especifica_codigo: "",
+  equipo_molde_pison_codigo: "-",
+  equipo_gravedad_especifica_codigo: "-",
   observaciones: "",
   revisado_por: "-",
   revisado_fecha: formatTodayShortDate(),
@@ -277,12 +277,7 @@ export default function GeFinoForm() {
       const sanitize = (v: string | null | undefined) => (v === "-" ? "" : v || "")
       const payload: GeFinoPayload = {
         ...form,
-        equipo_balanza_01g_codigo: sanitize(form.equipo_balanza_01g_codigo),
-        equipo_horno_110_codigo: sanitize(form.equipo_horno_110_codigo),
-        equipo_termometro_codigo: sanitize(form.equipo_termometro_codigo),
         equipo_picnometro_codigo: sanitize(form.equipo_picnometro_codigo),
-        equipo_molde_pison_codigo: sanitize(form.equipo_molde_pison_codigo),
-        equipo_gravedad_especifica_codigo: sanitize(form.equipo_gravedad_especifica_codigo),
         valor_a_g: form.valor_a_g ?? computedA,
         densidad_relativa_od: form.densidad_relativa_od ?? od,
         densidad_relativa_ssd: form.densidad_relativa_ssd ?? ssd,
@@ -426,15 +421,29 @@ export default function GeFinoForm() {
                   <div key={key} className="contents">
                     <div className="border border-slate-300 p-2">{label}</div>
                     <div className="border border-slate-300 p-1">
-                      <input
-                        type="text"
-                        className={txt}
-                        value={form[key] || ""}
-                        onChange={(e) => setField(key, e.target.value)}
-                        placeholder="-"
-                        autoComplete="off"
-                        data-lpignore="true"
-                      />
+                      {key === "equipo_picnometro_codigo" ? (
+                        <input
+                          type="text"
+                          className={txt}
+                          value={form[key] || ""}
+                          onChange={(e) => setField(key, e.target.value)}
+                          placeholder="-"
+                          autoComplete="off"
+                          data-lpignore="true"
+                        />
+                      ) : (
+                        <select
+                          className={txt}
+                          value={form[key] || "-"}
+                          onChange={(e) => setField(key, e.target.value)}
+                        >
+                          {options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
                 )
