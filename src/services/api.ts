@@ -30,6 +30,12 @@ api.interceptors.response.use(
     },
 )
 
+
+const extractFilename = (contentDisposition?: string): string | undefined => {
+    const match = typeof contentDisposition === 'string' ? contentDisposition.match(/filename="?([^";]+)"?/i) : null
+    return match?.[1]
+}
+
 export async function saveGeFinoEnsayo(
     payload: GeFinoPayload,
     ensayoId?: number,
@@ -46,7 +52,7 @@ export async function saveGeFinoEnsayo(
 export async function saveAndDownloadGeFinoExcel(
     payload: GeFinoPayload,
     ensayoId?: number,
-): Promise<{ blob: Blob; ensayoId?: number }> {
+): Promise<{ blob: Blob; ensayoId?: number; filename?: string }> {
     const response = await api.post("/api/ge-fino/excel", payload, {
         params: {
             download: true,
@@ -60,6 +66,7 @@ export async function saveAndDownloadGeFinoExcel(
     return {
         blob: response.data,
         ensayoId: Number.isFinite(parsedId) ? parsedId : undefined,
+        filename: extractFilename(response.headers['content-disposition']),
     }
 }
 
