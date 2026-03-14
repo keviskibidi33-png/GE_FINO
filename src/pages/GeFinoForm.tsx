@@ -359,10 +359,10 @@ export default function GeFinoForm() {
             <div className="border-r border-slate-300 py-1">MUESTRA</div><div className="border-r border-slate-300 py-1">N° OT</div><div className="border-r border-slate-300 py-1">FECHA DE ENSAYO</div><div className="py-1">REALIZADO</div>
           </div>
           <div className="grid grid-cols-4 border-b border-slate-300">
-            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.muestra} onChange={(e) => setField("muestra", e.target.value)} onBlur={() => setField("muestra", normalizeMuestra(form.muestra || ""))} autoComplete="off" data-lpignore="true" /></div>
-            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.numero_ot} onChange={(e) => setField("numero_ot", e.target.value)} onBlur={() => setField("numero_ot", normalizeOt(form.numero_ot || ""))} autoComplete="off" data-lpignore="true" /></div>
-            <div className="border-r border-slate-300 p-1"><input className={txt} value={form.fecha_ensayo} onChange={(e) => setField("fecha_ensayo", e.target.value)} onBlur={() => setField("fecha_ensayo", normalizeDate(form.fecha_ensayo || ""))} autoComplete="off" data-lpignore="true" /></div>
-            <div className="p-1"><input className={txt} value={form.realizado_por || ""} onChange={(e) => setField("realizado_por", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
+            <div className="border-r border-slate-300 p-1"><input className={`${txt} text-center`} value={form.muestra} onChange={(e) => setField("muestra", e.target.value)} onBlur={() => setField("muestra", normalizeMuestra(form.muestra || ""))} autoComplete="off" data-lpignore="true" /></div>
+            <div className="border-r border-slate-300 p-1"><input className={`${txt} text-center`} value={form.numero_ot} onChange={(e) => setField("numero_ot", e.target.value)} onBlur={() => setField("numero_ot", normalizeOt(form.numero_ot || ""))} autoComplete="off" data-lpignore="true" /></div>
+            <div className="border-r border-slate-300 p-1"><input className={`${txt} text-center`} value={form.fecha_ensayo} onChange={(e) => setField("fecha_ensayo", e.target.value)} onBlur={() => setField("fecha_ensayo", normalizeDate(form.fecha_ensayo || ""))} autoComplete="off" data-lpignore="true" /></div>
+            <div className="p-1"><input className={`${txt} text-center`} value={form.realizado_por || ""} onChange={(e) => setField("realizado_por", e.target.value)} autoComplete="off" data-lpignore="true" /></div>
           </div>
 
           <div className="text-center py-2 border-b border-slate-300 bg-slate-100">
