@@ -62,7 +62,7 @@ const initialState = (): GeFinoPayload => ({
   valor_s_g: null,
   valor_c_g: null,
   valor_b_g: null,
-  valor_d_g: null,
+  valor_d_g: "",
   valor_e_g: null,
   valor_f_g: null,
   valor_g_g: null,
@@ -321,11 +321,11 @@ export default function GeFinoForm() {
     setForm(initialState())
   }
 
-  const rows: Array<{ key: NKey; sym: string; desc: string; unit: string; val: number | null }> = [
+  const rows: Array<{ key: NKey; sym: string; desc: string; unit: string; val: number | string | null }> = [
     { key: "valor_s_g", sym: "S", desc: "Masa de muestra saturada de superficie seca y densidad relativa", unit: "g", val: form.valor_s_g ?? null },
     { key: "valor_c_g", sym: "C", desc: "Masa del picnometro lleno de muestra y agua", unit: "g", val: form.valor_c_g ?? null },
     { key: "valor_b_g", sym: "B", desc: "Masa del picnometro lleno de agua", unit: "g", val: form.valor_b_g ?? null },
-    { key: "valor_d_g", sym: "d", desc: "Recipiente", unit: "g", val: form.valor_d_g ?? null },
+    { key: "valor_d_g", sym: "d", desc: "Recipiente", unit: "g", val: form.valor_d_g ?? "" },
     { key: "valor_e_g", sym: "e", desc: "Masa del recipiente", unit: "g", val: form.valor_e_g ?? null },
     { key: "valor_f_g", sym: "f", desc: "Masa del recipiente mas muestra secada al horno", unit: "g", val: form.valor_f_g ?? null },
     { key: "valor_g_g", sym: "g", desc: "Masa del recipiente mas muestra secada al horno constante", unit: "g", val: form.valor_g_g ?? null },
@@ -396,9 +396,11 @@ export default function GeFinoForm() {
                   <td className="border border-slate-300 text-center">{r.unit}</td>
                   <td className="border border-slate-300 p-1">
                     {r.key === "densidad_relativa_od" || r.key === "densidad_relativa_ssd" || r.key === "densidad_relativa_aparente" ? (
-                      <input type="text" className={`${num} bg-slate-50`} value={fixed4((form[r.key] as number | null | undefined) ?? r.val ?? null)} readOnly />
+                      <input type="text" className={`${num} bg-slate-50`} value={fixed4((form[r.key] as number | null | undefined) ?? (r.val as number | null) ?? null)} readOnly />
                     ) : r.key === "absorcion_pct" ? (
-                      <input type="text" className={`${num} bg-slate-50`} value={fixed2((form[r.key] as number | null | undefined) ?? r.val ?? null)} readOnly />
+                      <input type="text" className={`${num} bg-slate-50`} value={fixed2((form[r.key] as number | null | undefined) ?? (r.val as number | null) ?? null)} readOnly />
+                    ) : r.key === "valor_d_g" ? (
+                      <input type="text" className={num} value={form.valor_d_g || ""} onChange={(e) => setField("valor_d_g", e.target.value)} autoComplete="off" data-lpignore="true" />
                     ) : (
                       <input type="number" step="any" className={`${num} ${r.key === "valor_a_g" ? "bg-slate-50" : ""}`} value={(form[r.key] as number | null | undefined) ?? r.val ?? ""} onChange={(e) => setField(r.key, parseNum(e.target.value))} />
                     )}

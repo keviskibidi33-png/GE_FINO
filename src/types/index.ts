@@ -15,7 +15,7 @@ export interface GeFinoPayload {
     valor_s_g?: number | null
     valor_c_g?: number | null
     valor_b_g?: number | null
-    valor_d_g?: number | null
+    valor_d_g?: string | null
     valor_e_g?: number | null
     valor_f_g?: number | null
     valor_g_g?: number | null
