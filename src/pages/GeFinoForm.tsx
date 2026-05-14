@@ -33,7 +33,7 @@ type EquipoField =
 
 const EQUIPO_OPTIONS: Record<EquipoField, readonly string[]> = {
   equipo_balanza_01g_codigo: ["-", "EQP-0090"],
-  equipo_horno_110_codigo: ["-", "EQP-0150"],
+  equipo_horno_110_codigo: ["-", "EQP-0150", "EQP-0049"],
   equipo_termometro_codigo: ["-", "INS-0153"],
   equipo_picnometro_codigo: ["-"],
   equipo_molde_pison_codigo: ["-", "INS-0111"],
