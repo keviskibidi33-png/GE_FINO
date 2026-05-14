@@ -476,13 +476,13 @@ export default function GeFinoForm() {
           <div className="grid grid-cols-2 gap-3 p-3">
             <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
               <p className="text-sm font-semibold">Revisado:</p>
-              <select className={txt} value={form.revisado_por || "-"} onChange={(e) => setField("revisado_por", e.target.value)}>{REVISORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
+              <select className={txt} value={form.revisado_por || "-"} onChange={(e) => { const v = e.target.value; setField("revisado_por", v); if (v !== "-") { setField("revisado_fecha", normalizeDate(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Lima" }))) } }}>{REVISORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
               <p className="text-sm font-semibold">Fecha:</p>
               <input className={txt} value={form.revisado_fecha || ""} onChange={(e) => setField("revisado_fecha", e.target.value)} onBlur={() => setField("revisado_fecha", normalizeDate(form.revisado_fecha || ""))} autoComplete="off" data-lpignore="true" />
             </div>
             <div className="rounded-lg border border-slate-300 bg-slate-100 p-3 space-y-2">
               <p className="text-sm font-semibold">Aprobado:</p>
-              <select className={txt} value={form.aprobado_por || "-"} onChange={(e) => setField("aprobado_por", e.target.value)}>{APROBADORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
+              <select className={txt} value={form.aprobado_por || "-"} onChange={(e) => { const v = e.target.value; setField("aprobado_por", v); if (v !== "-") { setField("aprobado_fecha", normalizeDate(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Lima" }))) } }}>{APROBADORES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
               <p className="text-sm font-semibold">Fecha:</p>
               <input className={txt} value={form.aprobado_fecha || ""} onChange={(e) => setField("aprobado_fecha", e.target.value)} onBlur={() => setField("aprobado_fecha", normalizeDate(form.aprobado_fecha || ""))} autoComplete="off" data-lpignore="true" />
             </div>
