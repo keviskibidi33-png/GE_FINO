@@ -113,8 +113,8 @@ const getEnsayoId = (): number | null => {
 const y2 = () => new Date().getFullYear().toString().slice(-2)
 const normalizeMuestra = (raw: string) => {
   const compact = raw.trim().toUpperCase().replace(/\s+/g, "")
-  const m = compact.match(/^(\d+)(?:-SU)?(?:-(\d{2}))?$/)
-  return m ? `${m[1]}-SU-${m[2] || y2()}` : raw.trim().toUpperCase()
+  const m = compact.match(/^(\d+)(?:-(?:SU|AG))?(?:-(\d{2}))?$/)
+  return m ? `${m[1]}-AG-${m[2] || y2()}` : raw.trim().toUpperCase()
 }
 const normalizeOt = (raw: string) => {
   const compact = raw.trim().toUpperCase().replace(/\s+/g, "")
@@ -246,6 +246,7 @@ export default function GeFinoForm() {
     if (!raw) return
     try {
       const hydrated = { ...initialState(), ...JSON.parse(raw) } as GeFinoPayload
+      hydrated.muestra = normalizeMuestra(hydrated.muestra || "")
       hydrated.fecha_ensayo = normalizeDate(hydrated.fecha_ensayo || "")
       setForm(hydrated)
     } catch {
@@ -269,6 +270,7 @@ export default function GeFinoForm() {
         const detail = await getGeFinoEnsayoDetail(editingEnsayoId)
         if (!cancelled && detail.payload) {
           const hydrated = { ...initialState(), ...detail.payload } as GeFinoPayload
+          hydrated.muestra = normalizeMuestra(hydrated.muestra || "")
           hydrated.fecha_ensayo = normalizeDate(hydrated.fecha_ensayo || "")
           setForm(hydrated)
         }
@@ -283,7 +285,18 @@ export default function GeFinoForm() {
       cancelled = true
     }
   }, [editingEnsayoId])
-    const [pendingFormatAction, setPendingFormatAction] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const today = normalizeDate(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Lima" }))
+    if (form.revisado_por && form.revisado_por !== "-" && !form.revisado_fecha) {
+      setField("revisado_fecha", today)
+    }
+    if (form.aprobado_por && form.aprobado_por !== "-" && !form.aprobado_fecha) {
+      setField("aprobado_fecha", today)
+    }
+  }, [form.aprobado_fecha, form.aprobado_por, form.revisado_fecha, form.revisado_por, setField])
+
+  const [pendingFormatAction, setPendingFormatAction] = useState<boolean | null>(null)
 
 
   const save = useCallback(async (download: boolean) => {
