@@ -215,7 +215,19 @@ export default function GeFinoForm() {
   const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(() => getEnsayoId())
 
   const setField = useCallback(<K extends keyof GeFinoPayload>(key: K, value: GeFinoPayload[K]) => {
-    setForm((p) => ({ ...p, [key]: value }))
+    setForm((p) => {
+      const next = { ...p, [key]: value } as GeFinoPayload
+      if (key === "muestra" && typeof value === "string") {
+        next.muestra = normalizeMuestra(value)
+      }
+      if (key === "revisado_por" && typeof value === "string" && value !== "-" && !next.revisado_fecha) {
+        next.revisado_fecha = normalizeDate(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Lima" }))
+      }
+      if (key === "aprobado_por" && typeof value === "string" && value !== "-" && !next.aprobado_fecha) {
+        next.aprobado_fecha = normalizeDate(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Lima" }))
+      }
+      return next
+    })
   }, [])
 
   const computedA = useMemo(() => {
@@ -288,6 +300,10 @@ export default function GeFinoForm() {
 
   useEffect(() => {
     const today = normalizeDate(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Lima" }))
+    const normalizedMuestra = normalizeMuestra(form.muestra || "")
+    if (normalizedMuestra !== form.muestra) {
+      setField("muestra", normalizedMuestra)
+    }
     if (form.revisado_por && form.revisado_por !== "-" && !form.revisado_fecha) {
       setField("revisado_fecha", today)
     }
