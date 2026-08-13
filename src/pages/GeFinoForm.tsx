@@ -316,22 +316,33 @@ export default function GeFinoForm() {
         densidad_relativa_aparente: form.densidad_relativa_aparente ?? aparente,
         absorcion_pct: form.absorcion_pct ?? absorcion,
       }
+      let savedId = editingEnsayoId
+
       if (download) {
-        const { blob, filename } = await saveAndDownloadGeFinoExcel(payload, editingEnsayoId ?? undefined)
+        const { blob, ensayoId: returnedId, filename } = await saveAndDownloadGeFinoExcel(payload, editingEnsayoId ?? undefined)
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
         a.download = filename || `${buildFormatPreview(form.muestra, 'AG', 'GE FINO')}.xlsx`
         a.click()
         URL.revokeObjectURL(url)
+        if (returnedId) savedId = returnedId
       } else {
-        await saveGeFinoEnsayo(payload, editingEnsayoId ?? undefined)
+        const saved = await saveGeFinoEnsayo(payload, editingEnsayoId ?? undefined)
+        savedId = saved.id
       }
+
+      if (savedId && savedId !== editingEnsayoId) {
+        setEditingEnsayoId(savedId)
+        localStorage.removeItem(`${DRAFT_KEY}:new`)
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.set("ensayo_id", String(savedId))
+        window.history.replaceState(null, "", newUrl.toString())
+      }
+
       localStorage.removeItem(`${DRAFT_KEY}:${editingEnsayoId ?? "new"}`)
-      setForm(initialState())
-      setEditingEnsayoId(null)
-      if (window.parent !== window) window.parent.postMessage({ type: "CLOSE_MODAL" }, "*")
       toast.success(download ? "GE Fino guardado y descargado." : "GE Fino guardado.")
+      if (window.parent !== window) window.parent.postMessage({ type: "ENSAYO_SAVED" }, "*")
     } catch (error: unknown) {
       const msg = await extractApiErrorMessage(error)
       toast.error(`Error guardando GE Fino: ${msg}`)
